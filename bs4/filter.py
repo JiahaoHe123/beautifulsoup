@@ -680,3 +680,25 @@ class SoupStrainer(ElementFilter):
         :meta private:
         """
         return element if self.match(element) else None
+
+class SoupReplacer(ElementFilter):
+    """Replace matching tag names during parsing.
+
+    Usage examples:
+        SoupReplacer('b', 'strong')
+
+    The first argument describes which tag names to replace (same
+    semantics as SoupStrainer's ``name`` argument). The second
+    argument may be a string naming the replacement tag.
+    """
+
+    def __init__(
+        self,
+        og_tag: _StrainableElement,
+        alt_tag: _StrainableElement,
+    ) -> None:
+        self.og_tag = og_tag
+        self.alt_tag = alt_tag
+
+    def change(self, name):
+            return self.alt_tag if name.lower() == self.og_tag else name

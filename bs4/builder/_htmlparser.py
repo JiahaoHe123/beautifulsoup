@@ -152,6 +152,10 @@ class BeautifulSoupHTMLParser(HTMLParser, DetectsXMLParsedAsHTML):
             closing tag).
         """
         # TODO: handle namespaces here?
+        replacer = getattr(self.soup, "replacer", None)
+        if replacer:
+            name = replacer.change(name=name)
+
         attr_dict: AttributeDict = self.attribute_dict_class()
         for key, value in attrs:
             # Change None attribute values to the empty string
@@ -209,6 +213,10 @@ class BeautifulSoupHTMLParser(HTMLParser, DetectsXMLParsedAsHTML):
            be the closing portion of an empty-element tag,
            e.g. '<tag></tag>'.
         """
+        replacer = getattr(self.soup, "replacer", None)
+        if replacer:
+            name = replacer.change(name)
+
         # print("END", name)
         if check_already_closed and name in self.already_closed_empty_element:
             # This is a redundant end tag for an empty-element tag.
