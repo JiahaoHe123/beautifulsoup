@@ -684,21 +684,73 @@ class SoupStrainer(ElementFilter):
 class SoupReplacer(ElementFilter):
     """Replace matching tag names during parsing.
 
+    :param og_tag: The tag needed to be replaced
+    :param alt_tag: The tag after replace
+    :param name_xformer: some kind of client-side custormized function
+        that take a tag in the tree as argument and return replacements
+        for the tag's name
+    :param attr_xformer: some kind of client-side custormized function
+        that take a tag in the tree as argument and return replacements
+        for the tag's attributes
+    :param xformer: some kind of client-side custormized function
+        that take a tag in the tree as argument, which is a more
+        powerful function that can have side effects on the tag
+        and does not return anything.
+
     Usage examples:
         SoupReplacer('b', 'strong')
+        SoupReplacer(
+            name_xformer=lambda tag:
+                “blockquote”
+                if tag.name == “b”
+                else tag.name
+        )
 
-    The first argument describes which tag names to replace (same
-    semantics as SoupStrainer's ``name`` argument). The second
-    argument may be a string naming the replacement tag.
+    Params including name_xformer, attr_xformer, and xformer
+    must be passed by keyword, not by position.
     """
 
     def __init__(
         self,
-        og_tag: _StrainableElement,
-        alt_tag: _StrainableElement,
+        og_tag: Optional[_StrainableElement] = None,
+        alt_tag: Optional[_StrainableElement] = None,
+        *,
+        name_xformer: Optional[Callable[[Tag], str]] = None,
+        attrs_xformer: Optional[Callable[[Tag], dict]] = None,
+        xformer: Optional[Callable[[Tag], None]] = None,
     ) -> None:
         self.og_tag = og_tag
         self.alt_tag = alt_tag
 
+        self.name_xformer = name_xformer
+        self.attrs_xformer = attrs_xformer
+        self.xformer = xformer
+        self.is_simple = (self.name_xformer is None
+                         and self.attrs_xformer is None
+                         and self.xformer is None
+                         and self.og_tag is not None
+                         and self.alt_tag is not None)
+
     def change(self, name):
+        if self.is_simple:
             return self.alt_tag if name.lower() == self.og_tag else name
+        return name
+
+    def __call__(self, tag):
+        if not isinstance(tag, Tag):
+            return tag
+
+        if self.xformer is not None:
+            self.xformer(tag)
+
+        if self.name_xformer is not None:
+            new_name = self.name_xformer(tag)
+            if new_name is not None:
+                tag.name = new_name
+
+        if self.attrs_xformer is not None:
+            new_attrs = self.attrs_xformer(tag)
+            if new_attrs is not None:
+                tag.attrs = new_attrs
+
+        return tag
