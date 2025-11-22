@@ -492,6 +492,15 @@ class BeautifulSoup(Tag):
         self.markup = None
         self.builder.soup = None
 
+    def __iter__(self):
+        stack = [self]
+        while stack:
+            node = stack.pop()
+            yield node
+            if hasattr(node, 'contents'):
+                for child in reversed(node.contents):
+                    stack.append(child)
+
     def copy_self(self) -> "BeautifulSoup":
         """Create a new BeautifulSoup object with the same TreeBuilder,
         but not associated with any markup.
